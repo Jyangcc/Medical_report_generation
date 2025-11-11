@@ -11,3 +11,13 @@ evaluation_results_NO_RAG.json
 generated_report_sample.json
 test_cases.json
 train_cases.json
+
+.vscode/
+.DS_Store
+.venv/
+
+plot.py
+plot2.py
+show_file.py
+small_tool.py
+docs
