@@ -147,8 +147,8 @@ class MammographyDataLoader:
                     # A 欄是 case_id (第一欄，通常是 'Status' 或沒有名稱)
                     # B 欄是報告內容 (第二欄)
                     case_id = str(row.iloc[0]).strip()
-                    if case_id not in self.full_files:
-                        continue
+                    # if case_id not in self.full_files:
+                    #     continue
                     
                     raw_text = str(row.iloc[1]) if len(row) > 1 else ""
                     
