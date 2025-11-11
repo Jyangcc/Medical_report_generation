@@ -1,2 +1,13 @@
 Kang_Ning_General_Hospital/
 preprocessed_images/
+*.pyc
+*.pkl
+*.index
+*.json
+*.log
+log_*.txt
+evaluation_results.json
+evaluation_results_NO_RAG.json
+generated_report_sample.json
+test_cases.json
+train_cases.json
