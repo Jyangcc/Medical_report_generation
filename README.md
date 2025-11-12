@@ -50,30 +50,20 @@ export KMP_DUPLICATE_LIB_OK=TRUE
 
 This repository does not include the private hospital data. Before running, you must manually place your data according to the following structure (these paths are ignored by .gitignore):
 
+```bash
 /
-
 ├── preprocessed_images/       <-- (YOUR .NPY IMAGE FOLDERS)
-
 │   ├── 20230721_1st/
-
 │   │   ├── MAMO_DEID_...-00001/
-
 │   │   │   └── I0000000.npy ...
-
 │   │   └── ...
-
 │   ├── 20230728_2nd/
-
 │   └── 20230804_3rd/
-
 │
-
 └── Hospital/  <-- (YOUR .XLSX REPORT FILES)
-
     ├── MAMO_DEID_20230721_NOPID.xlsx
-    
     └── ...
-
+```
 
 #### Step 2: Run the Full Evaluation Pipeline
 
