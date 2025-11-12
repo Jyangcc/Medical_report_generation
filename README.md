@@ -1,198 +1,152 @@
- Medical Report Generation for Mammography via Dual-Stream RAG
+# Medical Report Generation via Dual-Stream RAG
 
-This is the official repository for the NTHU CS Undergraduate Project (2025), "SafeMammo." This project introduces a "Safety-First" AI reporting system to reduce high false-negative rates in mammography interpretation by augmenting Vision-Language Models (VLMs) with a novel Dual-Stream, Lesion-Aware Retrieval-Augmented Generation (RAG) architecture.
+This repository contains the complete codebase for the NTHU CS Undergraduate Project, a system designed to improve the clinical safety of AI-generated mammography reports by reducing false negatives.
 
-摘要 (Abstract)
+## Key Results
 
-Standard Vision-Language Models (VLMs) often fail to detect subtle, small lesions in high-resolution mammograms, leading to clinically dangerous false-negative rates. This project integrates explicit object detection (YOLOv8) with a Dual-Stream RAG mechanism. The system first localizes potential lesions and then uses BiomedCLIP to extract decoupled global (density) and local (lesion) features. These features query two separate clinical databases to retrieve visually similar historical cases.
+This system demonstrates a significant improvement over a baseline VLM-only approach:
 
-A multimodal VLM (Claude) synthesizes these inputs (full images, lesion crops, and retrieved reports) to generate a professional report. Our experiments show this RAG-enhanced system improves clinical sensitivity for suspicious findings (BI-RADS 0) from 35.42% (baseline) to 70.83%, effectively doubling the detection rate of potential cancers.
+Clinical Sensitivity (Recall): Doubled from 35.42% to 70.83%, successfully "rescuing" over half of the cases missed by the baseline.
 
-系統架構 (System Architecture)
+Report Quality (ROUGE-2): Increased by +46.2%, indicating a higher accuracy in using professional medical terminology.
 
-Our core innovation is the Dual-Stream RAG mechanism, which decouples the task of "density assessment" (a global task) from "lesion characterization" (a local task).
+## System Architecture
 
-Figure 1: The full Dual-Stream RAG pipeline, from detection to generation.
+Our core innovation is the Dual-Stream RAG mechanism, which decouples the global task of density assessment from the local task of lesion characterization.
 
-This architecture feeds a complex, multimodal prompt to the VLM, ensuring it has all the necessary visual evidence and clinical context to make an informed decision.
+### How to Reproduce the Experiment
 
-Figure 2: The structure of the multimodal prompt fed to the VLM.
+This guide outlines the complete step-by-step pipeline to reproduce the results from our paper.
 
-主要成果 (Key Results)
+Step 0: Setup
 
-Our system demonstrates a clear and significant improvement in clinical safety by drastically reducing false negatives.
+1. Install Dependencies
 
-1. 臨床效能 (Clinical Performance)
+This project requires Python 3.10+ and the following packages:
 
-The RAG system doubles the sensitivity (ability to find cancer) compared to the baseline VLM, proving the value of our retrieval architecture.
+#### Install all required packages
+```bash
+pip install torch faiss-cpu anthropic inference-sdk
+pip install evaluate bert_score rouge_score scikit-learn
+pip install matplotlib seaborn pandas open-clip-torch tqdm
+```
 
-Figure 3: V2 RAG (Our System) vs. No-RAG (Baseline) on clinical sensitivity and specificity.
+2. Set Environment Variables (CRITICAL)
 
-2. 錯誤分析 (Error Analysis)
-
-The confusion matrices show that our V2 RAG system successfully converted a large number of False Negatives (bottom-left) into True Positives (top-left).
-
-Figure 4: Normalized confusion matrices showing the shift from FN to TP.
-
-🚀 如何使用 (How to Use This Repository)
-
-This guide outlines the complete pipeline, from data setup to final evaluation, allowing you to reproduce our experimental results.
-
-1. 專案設定 (Setup)
-
-a. 複製儲存庫:
-
-git clone [Your-Repo-URL]
-cd Medical_report_generation
-
-
-b. 安裝依賴 (Dependencies):
-We recommend using a Python virtual environment.
-
-pip install -r requirements.txt
-# Key packages include:
-# pip install torch faiss-cpu anthropic inference-sdk
-# pip install evaluate bert_score rouge_score scikit-learn
-# pip install matplotlib seaborn pandas open-clip-torch
-
-
-c. 設定環境變數 (CRITICAL):
 This system relies on two external APIs. You must set these environment variables in your terminal.
 
-# Your API key from Anthropic (for Claude VLM)
+- Your API key from Anthropic (for Claude VLM)
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Your private API key from Roboflow (for YOLOv8 Detector)
+- Your private API key from Roboflow (for YOLOv8 Detector)
 export ROBOFLOW_API_KEY="..."
 
-# (Optional) For resolving library conflicts on macOS/Linux
+- (Recommended) For resolving library conflicts on macOS/Linux
 export OMP_NUM_THREADS=1
 export KMP_DUPLICATE_LIB_OK=TRUE
 
 
-2. 資料準備 (Data Placement)
+#### Step 1: Data Placement (Requires Private Data)
 
-This project does not include the raw data due to privacy. You must provide your own dataset following this structure:
+This repository does not include the private hospital data. Before running, you must manually place your data according to the following structure (these paths are ignored by .gitignore):
 
-Medical_report_generation/
-├── preprocessed_images/       <-- (YOUR NPY IMAGES)
+/
+├── preprocessed_images/       <-- (YOUR .NPY IMAGE FOLDERS)
 │   ├── 20230721_1st/
 │   │   ├── MAMO_DEID_...-00001/
-│   │   │   ├── I0000000.npy  (RCC)
-│   │   │   ├── I0000001.npy  (LCC)
-│   │   │   ├── I0000002.npy  (RMLO)
-│   │   │   └── I0000003.npy  (LMLO)
+│   │   │   └── I0000000.npy ...
 │   │   └── ...
 │   ├── 20230728_2nd/
 │   └── 20230804_3rd/
 │
-└── Kang_Ning_General_Hospital/  <-- (YOUR XLSX REPORTS)
+└── Hospital/  <-- (YOUR .XLSX REPORT FILES)
     ├── MAMO_DEID_20230721_NOPID.xlsx
-    ├── MAMO_DEID_20230728_NOPID.xlsx
-    └── MAMO_DEID_20230804_NOPID.xlsx
+    └── ...
 
 
-3. 實驗流程 (Execution Pipeline)
+#### Step 2: Run the Full Evaluation Pipeline
 
-Follow these steps sequentially to build the databases and run the evaluations.
+This is a 4-stage automated process. Run these scripts in order.
 
-Step 1: Create Train/Test Split
-This script randomly splits your 394 case IDs into train_cases.json and test_cases.json.
+- Stage 1: Create Train/Test Split
+
+This randomly splits your 394 case IDs into train_cases.json and test_cases.json.
 
 python prepare_split.py
 
 
-Step 2: Build Feature Database (V2)
-This is the most time-consuming step. It will iterate through all 394 cases, call the Roboflow API to detect lesions, and call BiomedCLIP to extract local/global features.
+- Stage 2: Build Feature Database
 
-# This will take a long time (e.g., 50+ minutes)
+This script iterates through all 394 cases, calls the Roboflow API to detect lesions, and uses BiomedCLIP to extract local/global features.
+
+This is the most time-consuming step (approx. 50-60 minutes).
+
+```bash
 python run_extraction.py
-# Output: mammography_features_v2.pkl
+```
+Output: mammography_features_v2.pkl
 
 
-Step 3: Build FAISS Indices
-This script reads mammography_features_v2.pkl and uses the training set (train_cases.json) to build the two FAISS retrieval indices.
+- Stage 3: Build FAISS Indices (from Training Set)
 
+This script builds the Density and Lesion retrieval indices using only the 315 training cases, preventing data leakage.
+
+```bash
 python build_v2_indices_from_split.py
-# Output: faiss_global_...index, faiss_lesion_...index, etc.
+```
+Outputs: faiss_global_...index, faiss_lesion_...index, etc.
 
 
-Step 4: Run All Evaluations (The "Go-to-Sleep" Script)
-You are now ready to run the final experiment. This script will execute the full evaluation on the 79 test cases for both our V2 RAG system and the No-RAG baseline.
+- Stage 4: Run Final Evaluation (RAG vs. No-RAG)
+
+This master script executes the full evaluation on the 79 "unseen" test cases for both our V2 RAG system and the No-RAG baseline.
 
 This will take several hours and make many API calls.
 
-# Make the script executable
+- Make the script executable
 chmod +x run_all_evaluations.sh
 
-# Run it (and go to sleep)
+- Run it (e.g., overnight)
 ./run_all_evaluations.sh
 
-# Outputs:
-# - evaluation_results.json (V2 RAG results)
-# - evaluation_results_NO_RAG.json (Baseline results)
-# - log_rag_v2.txt (Detailed log for V2)
-# - log_no_rag.txt (Detailed log for baseline)
+##### Main Outputs:
+- evaluation_results.json (V2 RAG results)
+- evaluation_results_NO_RAG.json (Baseline results)
 
 
-Step 5: Analyze Results
+#### Step 3: Analyze Results & Generate Plots
+
 After the evaluation is complete, use these scripts to generate the final metrics and graphs for your report.
 
-# Get Sensitivity, Specificity, and key "rescued" cases
+- 1. Get Clinical Metrics (Sensitivity, Specificity)
+```bash
 python analyze_improvement.py
-
-# Get ROUGE, BERTScore F1
+```
+- 2. Get NLG Metrics (ROUGE, BERTScore)
+```bash
 python calculate_text_metrics.py
+```
+- 3. (Optional) Verify False Negative Causes
+```bash
+python verify_fn_cause.py
+```
 
-# Generate the result charts (PNG files)
+- 4. Generate PNG plots
+```bash
 python plot_clinical_metrics.py
 python plot_confusion_matrices.py
+```
 
+#### Core Scripts
 
-專案檔案結構 (Project File Structure)
+``` bash
+rag_system_v2.py: (Core) Main logic for the V2 RAG system (Detection + Dual-Stream Retrieval + VLM).
 
-/ (Root)
-
-rag_system_v2.py: (Core) Main logic for the V2 RAG system.
-
-no_rag_system.py: (Core) Logic for the No-RAG baseline system.
+no_rag_system.py: (Core) Logic for the No-RAG baseline system (Detection + VLM only).
 
 detection_and_feature_extractor.py: (Core) Handles Roboflow API (YOLO) and local BiomedCLIP feature extraction.
 
-Get_Report.py: Utility for loading and parsing .xlsx report files.
+run_all_evaluations.sh: (Main) Master script to reproduce the experiment.
 
-/Data Pipeline
-
-prepare_split.py: (Step 1) Creates train_cases.json and test_cases.json.
-
-run_extraction.py: (Step 2) Runs the feature extractor on all data to create mammography_features_v2.pkl.
-
-build_v2_indices_from_split.py: (Step 3) Builds FAISS indices from the training set.
-
-/Evaluation
-
-run_all_evaluations.sh: (Step 4) Main executable script to run both evaluations.
-
-evaluate_on_test_set.py: Runs the V2 RAG system on the test set.
-
-evaluate_no_rag.py: Runs the No-RAG baseline on the test set.
-
-/Analysis
-
-analyze_improvement.py: Calculates clinical metrics (Sensitivity, etc.).
-
-calculate_text_metrics.py: Calculates NLG metrics (ROUGE, BERTScore).
-
-plot_clinical_metrics.py: Generates the clinical results bar chart.
-
-plot_confusion_matrices.py: Generates the confusion matrix heatmaps.
-
-verify_fn_cause.py: Script to analyze why false negatives occurred.
-
-/Data (Git Ignored)
-
-preprocessed_images/: (Ignored) Your .npy images.
-
-Kang_Ning_General_Hospital/: (Ignored) Your .xlsx reports.
-
-*.pkl, *.index, *.json, *.log: (Ignored) All generated data files.
+analyze_improvement.py: Calculates and prints final clinical metrics.
+```
